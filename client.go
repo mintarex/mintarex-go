@@ -18,7 +18,7 @@ import (
 )
 
 // SDKVersion is the current SDK version, surfaced in the User-Agent header.
-const SDKVersion = "0.0.1"
+const SDKVersion = "0.0.3"
 
 const (
 	defaultBaseURL       = "https://institutional.mintarex.com/v1"
@@ -60,7 +60,11 @@ type Options struct {
 // goroutines; it is safe for concurrent use.
 type Client struct {
 	apiKey         string
-	apiSecret      string
+	// apiSecret is stored as a closure so reflection-based prints
+	// (e.g. fmt.Sprintf("%+v", *client) on a dereferenced struct) cannot
+	// observe its value — fmt prints the function pointer address instead.
+	// Retrieved via c.apiSecret() inside this package.
+	apiSecret      func() string
 	Environment    Environment
 	BaseURL        *url.URL
 	StreamBaseURL  *url.URL
@@ -162,7 +166,7 @@ func New(opts Options) (*Client, error) {
 
 	c := &Client{
 		apiKey:         opts.APIKey,
-		apiSecret:      opts.APISecret,
+		apiSecret:      newSecretAccessor(opts.APISecret),
 		Environment:    env,
 		BaseURL:        baseURLParsed,
 		StreamBaseURL:  streamURLParsed,
@@ -179,6 +183,37 @@ func New(opts Options) (*Client, error) {
 	c.Public = &PublicResource{client: c}
 	c.Streams = &StreamsResource{client: c}
 	return c, nil
+}
+
+// newSecretAccessor closes over the secret so it lives only in the closure's
+// captured scope, never as a directly-readable struct field. Reflection-based
+// prints (fmt.Sprintf("%+v", *client)) see only the function pointer.
+func newSecretAccessor(secret string) func() string {
+	return func() string { return secret }
+}
+
+// String returns a redacted representation of the Client so that printing it
+// (e.g. fmt.Sprintf("%v", client) or %s/%+v on the pointer) cannot leak
+// APISecret into logs. Combined with [secretString], dereferenced struct
+// values are also masked when their fields are walked via reflection.
+func (c *Client) String() string {
+	if c == nil {
+		return "<nil mintarex.Client>"
+	}
+	base := ""
+	if c.BaseURL != nil {
+		base = c.BaseURL.String()
+	}
+	return fmt.Sprintf(
+		"mintarex.Client{APIKey: %q, APISecret: \"[REDACTED]\", Environment: %q, BaseURL: %q}",
+		c.apiKey, c.Environment, base,
+	)
+}
+
+// GoString covers fmt.Sprintf("%#v", client). Same redaction guarantee as
+// [Client.String].
+func (c *Client) GoString() string {
+	return c.String()
 }
 
 // RequestOptions control a single signed request.
@@ -309,7 +344,7 @@ func (c *Client) executeOnce(
 ) (*ResponseMeta, []byte, int, int, bool, error) {
 	hdrs := Sign(SignParams{
 		APIKey:    c.apiKey,
-		APISecret: c.apiSecret,
+		APISecret: c.apiSecret(),
 		Method:    method,
 		Path:      canonicalPath,
 		Body:      bodyBytes,

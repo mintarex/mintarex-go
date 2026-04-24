@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -29,6 +30,9 @@ type StreamOptions struct {
 	// HeartbeatInterval expected between server pings; reconnect after 2x this
 	// interval with no data. Default: 15s.
 	HeartbeatInterval time.Duration
+	// Instruments restricts the price stream to the listed pairs (e.g.
+	// []string{"BTC_USD", "ETH_USD"}). Ignored on the account stream.
+	Instruments []string
 }
 
 // StreamMessage is one parsed SSE event.
@@ -79,6 +83,11 @@ func (r *StreamsResource) open(ctx context.Context, endpoint string, opts Stream
 	}
 	if opts.MaxReconnectDelay < 0 {
 		return nil, &ConfigurationError{Message: "MaxReconnectDelay must be >= 0"}
+	}
+	if cleaned, err := normalizeInstruments(opts.Instruments); err != nil {
+		return nil, err
+	} else {
+		opts.Instruments = cleaned
 	}
 	// AutoReconnect default: pointer semantics not used in Go Options struct,
 	// so callers who want OFF must set it explicitly after constructing a struct
@@ -151,6 +160,9 @@ func (s *Stream) connect(ctx context.Context) error {
 	u.Path = strings.TrimRight(u.Path, "/") + "/" + s.endpoint
 	q := u.Query()
 	q.Set("token", tok.Token)
+	if s.endpoint == "prices" && len(s.opts.Instruments) > 0 {
+		q.Set("instruments", strings.Join(s.opts.Instruments, ","))
+	}
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -250,6 +262,31 @@ func (s *Stream) reconnect(ctx context.Context) error {
 	case <-t.C:
 	}
 	return s.connect(ctx)
+}
+
+// instrumentRE matches BASE_QUOTE pairs (e.g. BTC_USD, USDT_AED).
+var instrumentRE = regexp.MustCompile(`^[A-Z0-9]{1,20}_[A-Z0-9]{1,20}$`)
+
+func normalizeInstruments(input []string) ([]string, error) {
+	if len(input) == 0 {
+		return nil, nil
+	}
+	if len(input) > 200 {
+		return nil, &ConfigurationError{Message: "Instruments list capped at 200 entries"}
+	}
+	cleaned := make([]string, 0, len(input))
+	for _, v := range input {
+		if v == "" {
+			return nil, &ConfigurationError{Message: "Instruments entries must be non-empty strings"}
+		}
+		if !instrumentRE.MatchString(v) {
+			return nil, &ConfigurationError{
+				Message: fmt.Sprintf(`Instruments entry %q must look like BASE_QUOTE (e.g. BTC_USD)`, v),
+			}
+		}
+		cleaned = append(cleaned, v)
+	}
+	return cleaned, nil
 }
 
 func findEventBoundary(s string) int {
