@@ -205,7 +205,7 @@ mx, err := mintarex.New(mintarex.Options{
 
 | Namespace | Methods |
 |-----------|---------|
-| `mx.Account` | `Balances`, `Balance`, `Fees`, `Limits` |
+| `mx.Account` | `Balances`, `Balance`, `Limits` |
 | `mx.RFQ` | `Quote`, `Accept` |
 | `mx.Trades` | `List`, `Get` |
 | `mx.Crypto` | `DepositAddress`, `Deposits`, `Withdraw`, `Withdrawals`, `GetWithdrawal`, `Addresses.{List,Add,Remove}` |
