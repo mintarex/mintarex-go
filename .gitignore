@@ -1,0 +1,22 @@
+# Go build artifacts
+*.test
+*.out
+*.o
+*.a
+
+# Coverage
+coverage.out
+coverage.html
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Environment
+.env
+.env.local
+
+# Local dist
+dist/
