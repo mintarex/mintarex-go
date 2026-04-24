@@ -198,6 +198,12 @@ func (s *Stream) connect(ctx context.Context) error {
 	return nil
 }
 
+// maxSSEEventBytes caps the in-memory buffer for one SSE event so a malicious
+// or broken upstream that streams an unterminated line cannot grow memory
+// without bound. Spec-conformant servers send `\n\n` between events; a single
+// event exceeding 1 MiB is treated as a protocol violation.
+const maxSSEEventBytes = 1 << 20
+
 // fill reads until at least one parsed event is pending, or returns an error.
 func (s *Stream) fill(ctx context.Context) error {
 	for {
@@ -209,9 +215,17 @@ func (s *Stream) fill(ctx context.Context) error {
 		line, err := s.reader.ReadString('\n')
 		if err != nil {
 			if line != "" {
+				if s.buf.Len()+len(line) > maxSSEEventBytes {
+					return &NetworkError{Message: fmt.Sprintf(
+						"SSE event exceeds %d bytes without terminator, aborting", maxSSEEventBytes)}
+				}
 				s.buf.WriteString(line)
 			}
 			return err
+		}
+		if s.buf.Len()+len(line) > maxSSEEventBytes {
+			return &NetworkError{Message: fmt.Sprintf(
+				"SSE event exceeds %d bytes without terminator, aborting", maxSSEEventBytes)}
 		}
 		s.buf.WriteString(line)
 		// Event boundary: blank line (\n\n, \r\n\r\n, or \r\r).
