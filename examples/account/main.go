@@ -29,12 +29,6 @@ func main() {
 		fmt.Printf("  %-6s available=%s locked=%s\n", b.Currency, b.Available, b.Locked)
 	}
 
-	fees, err := mx.Account.Fees(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("\nFees: trading=%s\n", fees.TradingFeeRate)
-
 	limits, err := mx.Account.Limits(ctx)
 	if err != nil {
 		log.Fatal(err)

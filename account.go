@@ -68,19 +68,6 @@ func (r *AccountResource) Balance(ctx context.Context, currency string) (*Single
 	return out, nil
 }
 
-// Fees returns the fee schedule resolved for this account.
-func (r *AccountResource) Fees(ctx context.Context) (*FeesResponse, error) {
-	out := &FeesResponse{}
-	meta, err := r.client.Request(ctx, RequestOptions{
-		Method: http.MethodGet,
-		Path:   "/account/fees",
-	}, out)
-	if err != nil {
-		return nil, err
-	}
-	out.Meta = meta
-	return out, nil
-}
 
 // Limits returns daily/monthly deposit + withdrawal limits for this account.
 func (r *AccountResource) Limits(ctx context.Context) (*LimitsResponse, error) {

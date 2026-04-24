@@ -43,7 +43,7 @@ func TestSignProducesAllFourRequiredHeaders(t *testing.T) {
 		APIKey:    "mxn_live_abc",
 		APISecret: "deadbeef",
 		Method:    "GET",
-		Path:      "/v1/account/fees",
+		Path:      "/v1/account/limits",
 		Timestamp: "1712582345",
 		Nonce:     "550e8400-e29b-41d4-a716-446655440000",
 	})
@@ -98,11 +98,11 @@ func TestSignDiffersWhenAnySignedInputChanges(t *testing.T) {
 }
 
 func TestSignWithEmptyBodyUsesEmptyBodySHA256(t *testing.T) {
-	canonical := BuildCanonicalString("GET", "/v1/account/fees", "1", "n", EmptyBodySHA256)
+	canonical := BuildCanonicalString("GET", "/v1/account/limits", "1", "n", EmptyBodySHA256)
 	want := HMACSign("secret", canonical)
 	got := Sign(SignParams{
 		APIKey: "k", APISecret: "secret",
-		Method: "GET", Path: "/v1/account/fees",
+		Method: "GET", Path: "/v1/account/limits",
 		Timestamp: "1", Nonce: "n",
 	}).Signature
 	if got != want {

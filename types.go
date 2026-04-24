@@ -67,16 +67,6 @@ type SingleBalanceResponse struct {
 	Meta            *ResponseMeta
 }
 
-// FeesResponse is returned by [AccountResource.Fees]. Only trading fees are
-// exposed; fiat deposit/withdrawal fees apply to dashboard-only operations
-// the API cannot initiate.
-type FeesResponse struct {
-	TradingFeeRate string `json:"trading_fee_rate"`
-	Note           string `json:"note,omitempty"`
-	Timestamp      string `json:"timestamp"`
-	Meta           *ResponseMeta
-}
-
 // LimitBucket is one category of limit returned in LimitsResponse. The
 // *_used and remaining_* fields may be nil when the server has not computed
 // them yet.
