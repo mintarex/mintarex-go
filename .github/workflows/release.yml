@@ -1,0 +1,21 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  test-and-register:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - run: go vet ./...
+      - run: go test -race ./...
+      - name: Register tag with module proxy
+        run: |
+          curl -sf "https://proxy.golang.org/github.com/mintarex/mintarex-go/@v/${GITHUB_REF_NAME}.info" || true
+          curl -sf "https://proxy.golang.org/github.com/mintarex/mintarex-go/@latest" || true
