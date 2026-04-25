@@ -18,7 +18,7 @@ import (
 )
 
 // SDKVersion is the current SDK version, surfaced in the User-Agent header.
-const SDKVersion = "0.0.4"
+const SDKVersion = "0.0.5"
 
 const (
 	defaultBaseURL       = "https://institutional.mintarex.com/v1"
