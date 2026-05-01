@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const webhookTestSecret = "whsec_testsecret0123456789abcdef0123456789abcdef01234567"
+const webhookTestSecret = "mtxhook_test_fixture_key_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 func signWebhookBody(ts, body, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
@@ -100,7 +100,7 @@ func TestVerifyWebhookRejectsTamperedBody(t *testing.T) {
 func TestVerifyWebhookRejectsWrongSecret(t *testing.T) {
 	body := `{"timestamp":"t","trade_id":"x"}`
 	ts := strconv.FormatInt(time.Now().Unix(), 10)
-	sig := signWebhookBody(ts, body, "whsec_othersecret0123456789abcdef0123456789abcdef012")
+	sig := signWebhookBody(ts, body, "mtxhook_test_other_key_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	_, err := VerifyWebhook(VerifyParams{
 		Body: []byte(body), Headers: realHeaders(ts, sig), Secret: webhookTestSecret,
 	})
